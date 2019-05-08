@@ -1,0 +1,26 @@
+{
+  "name": "voting-service",
+  "version": "0.1.0",
+  "description": "simple service to collect votes (uses social login)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --inspect server.js",
+    "faker": "node faker.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "Unlicense",
+  "dependencies": {
+    "@hapi/bell": "^10.1.0",
+    "@hapi/cookie": "^10.1.0",
+    "@hapi/hapi": "^18.3.1",
+    "cuid": "^2.1.6",
+    "encoding-down": "^6.0.2",
+    "leveldown": "^5.0.3",
+    "levelup": "^4.0.1"
+  },
+  "devDependencies": {
+    "faker": "^4.1.0",
+    "standard": "^12.0.1"
+  }
+}
