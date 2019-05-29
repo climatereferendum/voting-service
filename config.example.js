@@ -1,4 +1,4 @@
-module.export = {
+module.exports = {
   port: 8000,
   serviceUrl: 'http://localhost:8081',
   appUrl: 'http://localhost:8180',
