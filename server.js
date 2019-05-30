@@ -157,7 +157,8 @@ async function listVotes (request, h) {
     list.push({
       name: vote.name,
       nationality: vote.nationality,
-      description: vote.description
+      description: vote.description,
+      opinion: vote.opinion
     })
   }
   return list

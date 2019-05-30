@@ -9,7 +9,9 @@ function fakeData () {
   return {
     name: faker.name.findName(),
     nationality: faker.address.countryCode(),
-    description: faker.company.catchPhrase()
+    description: faker.company.catchPhrase(),
+    opinion: faker.lorem.paragraph(5)
+
   }
 }
 
