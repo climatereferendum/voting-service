@@ -3,6 +3,15 @@ module.exports = {
   serviceUrl: 'http://localhost:8081',
   appUrl: 'http://localhost:8180',
   cookiePassword: 'CHANGE_ME',
+  smtp: {
+    host: '',
+    port: 587,
+    secure: false,
+    auth: {
+      user: '',
+      pass: ''
+    }
+  },
   google: {
     clientId: '',
     clientSecret: ''

@@ -5,10 +5,27 @@ const levelup = require('levelup')
 const leveldown = require('leveldown')
 const encode = require('encoding-down')
 const cuid = require('cuid')
-
-const db = levelup(encode(leveldown('./db'), { valueEncoding: 'json' }))
+const nodemailer = require('nodemailer')
 
 const config = require('./config')
+
+const db = levelup(encode(leveldown('./db'), { valueEncoding: 'json' }))
+const mailTransporter = nodemailer.createTransport(config.smtp)
+
+function generateMail (email) {
+  return {
+    from: config.smtp.auth.user,
+    to: email,
+    subject: 'Congratulations on being part of this citizen vote on Climate Change',
+    text: `
+If you wish to read more about Alice in Government and how to get involved please visit: https://aliceingovernment.com/info
+
+Twitter: https://twitter.com/vsclimatechange
+Medium: https://medium.com/blockchainvsclimatechange
+Estonian Address Kiriku 6, Tallinn, 10130, Estonia
+    `
+  }
+}
 
 const internals = {}
 
@@ -109,6 +126,7 @@ async function entrypoint (request, h) {
   if (request.auth.credentials) {
     const email = request.auth.credentials.email
     const vote = await db.get(email)
+    // TODO handle if somehow vote doesn't exist
     info.vote = vote
   }
   return info
@@ -145,6 +163,14 @@ async function vote (request, h) {
       return 409
     } else {
       await db.put(email, request.payload)
+
+      // send email
+      try {
+        await mailTransporter.sendMail(generateMail(email))
+      } catch (err) {
+        console.log(err)
+      }
+
       // respond with 204
       return 204
     }
