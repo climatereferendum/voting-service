@@ -1,4 +1,5 @@
 const Hapi = require('@hapi/hapi')
+const Boom = require('@hapi/boom')
 const Bell = require('@hapi/bell')
 const Cookie = require('@hapi/cookie')
 const levelup = require('levelup')
@@ -86,6 +87,15 @@ internals.start = async function () {
 
   server.route({
     method: 'GET',
+    path: '/data',
+    options: {
+      auth: 'session',
+      handler: listData
+    }
+  })
+
+  server.route({
+    method: 'GET',
     path: '/auth/google',
     options: {
       auth: 'google',
@@ -154,13 +164,13 @@ async function oauth (request, h) {
 async function vote (request, h) {
   const email = request.auth.credentials.email
   if (request.payload.email !== email) {
-    return 403
+    return Boom.forbidden()
   } else {
     // check if vote existis
     const vote = await db.get(email)
     if (request.payload.id !== vote.id || vote.created) {
       // respond with conflict
-      return 409
+      return Boom.conflict()
     } else {
       await db.put(email, request.payload)
 
@@ -172,8 +182,21 @@ async function vote (request, h) {
       }
 
       // respond with 204
-      return 204
+      return h.code(204)
     }
+  }
+}
+
+async function listData (request, h) {
+  const email = request.auth.credentials.email
+  if (email !== config.admin) {
+    return Boom.forbidden()
+  } else {
+    const list = []
+    for await (const vote of db.createValueStream()) {
+      list.push(vote)
+    }
+    return list
   }
 }
 

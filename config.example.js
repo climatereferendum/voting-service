@@ -3,6 +3,7 @@ module.exports = {
   serviceUrl: 'http://localhost:8081',
   appUrl: 'http://localhost:8180',
   cookiePassword: 'CHANGE_ME',
+  admin: 'admin@example.org',
   smtp: {
     host: '',
     port: 587,
