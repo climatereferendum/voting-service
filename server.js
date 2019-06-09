@@ -9,9 +9,11 @@ const cuid = require('cuid')
 const nodemailer = require('nodemailer')
 
 const config = require('./config')
+const { populateCache, extractPublicPart } = require('./common')
 
 const db = levelup(encode(leveldown('./db'), { valueEncoding: 'json' }))
 const mailTransporter = nodemailer.createTransport(config.smtp)
+let cache, stats
 
 function generateMail (email) {
   return {
@@ -79,9 +81,17 @@ internals.start = async function () {
 
   server.route({
     method: 'GET',
-    path: '/votes',
+    path: '/votes/{countryCode}',
     options: {
       handler: listVotes
+    }
+  })
+
+  server.route({
+    method: 'GET',
+    path: '/stats',
+    options: {
+      handler: listStats
     }
   })
 
@@ -121,10 +131,25 @@ internals.start = async function () {
     }
   })
 
+  cache = await populateCache(db.createValueStream())
+  stats = createStats(cache)
+
   await server.start()
 }
 
 internals.start()
+
+function createStats (data) {
+  return {
+    ...data,
+    country: data.country.map(country => {
+      return {
+        ...country,
+        vote: country.vote.slice(0, 5)
+      }
+    })
+  }
+}
 
 async function entrypoint (request, h) {
   const info = {
@@ -160,6 +185,11 @@ async function oauth (request, h) {
   return h.redirect(config.appUrl)
 }
 
+function getIndex (vote) {
+  const country = cache.country.find(c => c.code === vote.nationality)
+  return country.vote.length + 1
+}
+
 // PUT
 async function vote (request, h) {
   const email = request.auth.credentials.email
@@ -167,12 +197,24 @@ async function vote (request, h) {
     return Boom.forbidden()
   } else {
     // check if vote existis
-    const vote = await db.get(email)
+    let vote = await db.get(email)
     if (request.payload.id !== vote.id || vote.created) {
       // respond with conflict
       return Boom.conflict()
     } else {
-      await db.put(email, request.payload)
+      vote = {
+        ...request.payload,
+        created: new Date().toISOString(),
+        index: getIndex(request.payload)
+      }
+      try {
+        await db.put(email, vote)
+        const country = cache.country.find(c => c.code === vote.nationality)
+        country.vote = [extractPublicPart(vote), ...country.vote]
+        stats = createStats(cache)
+      } catch (err) {
+        console.log(err)
+      }
 
       // send email
       try {
@@ -182,7 +224,7 @@ async function vote (request, h) {
       }
 
       // respond with 204
-      return h.code(204)
+      return null
     }
   }
 }
@@ -201,16 +243,11 @@ async function listData (request, h) {
 }
 
 async function listVotes (request, h) {
-  const list = []
-  for await (const vote of db.createValueStream()) {
-    list.push({
-      name: vote.name,
-      nationality: vote.nationality,
-      description: vote.description,
-      opinion: vote.opinion
-    })
-  }
-  return list
+  return cache.country.find(c => c.code === request.params.countryCode)
+}
+
+async function listStats (request, h) {
+  return stats
 }
 
 process.on('unhandledRejection', (err) => {
