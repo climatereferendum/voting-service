@@ -45,10 +45,11 @@ internals.start = async function () {
     cookie: {
       name: 'fookie',
       password: config.cookiePassword,
-      ttl: 30 * 24 * 60 * 60 * 1000,
+      ttl: 30 * 24 * 60 * 60 * 1000, // 1000 days
       path: '/',
-      isSameSite: false // 30 days
-    }
+      isSameSite: false
+    },
+    keepAlive: true
   })
 
   server.auth.strategy('google', 'bell', {
@@ -187,6 +188,7 @@ async function oauth (request, h) {
 
 function getIndex (vote) {
   const country = cache.country.find(c => c.code === vote.nationality)
+  // TODO handle first vote for country
   return country.vote.length + 1
 }
 
@@ -211,6 +213,7 @@ async function vote (request, h) {
         await db.put(email, vote)
         const country = cache.country.find(c => c.code === vote.nationality)
         country.vote = [extractPublicPart(vote), ...country.vote]
+        country.count++
         stats = createStats(cache)
       } catch (err) {
         console.log(err)
