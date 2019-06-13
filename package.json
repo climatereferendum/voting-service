@@ -15,6 +15,7 @@
     "@hapi/boom": "^7.4.2",
     "@hapi/cookie": "^10.1.0",
     "@hapi/hapi": "^18.3.1",
+    "bee-queue": "^1.2.2",
     "cuid": "^2.1.6",
     "encoding-down": "^6.0.2",
     "leveldown": "^5.0.3",

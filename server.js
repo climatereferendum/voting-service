@@ -6,31 +6,14 @@ const levelup = require('levelup')
 const leveldown = require('leveldown')
 const encode = require('encoding-down')
 const cuid = require('cuid')
-const nodemailer = require('nodemailer')
+const Queue = require('bee-queue')
+const votesQueue = new Queue('votes')
 
 const config = require('./config')
 const { populateCache, extractPublicPart } = require('./common')
 
 const db = levelup(encode(leveldown('./db'), { valueEncoding: 'json' }))
-const mailTransporter = nodemailer.createTransport(config.smtp)
 let cache, stats
-
-function generateMail (email) {
-  return {
-    from: `"Alice in Government" <${config.smtp.auth.user}>`,
-    to: email,
-    subject: 'Your vote was registered successfully',
-    text: `
-Congratulations on being part of this citizen vote on Climate Change
-
-If you wish to read more about Alice in Government and how to get involved please visit: https://aliceingovernment.com/info
-
-Twitter: https://twitter.com/aliceingov
-Medium: https://medium.com/blockchainvsclimatechange
-Estonian Address Kiriku 6, Tallinn, 10130, Estonia
-    `
-  }
-}
 
 const internals = {}
 
@@ -220,14 +203,12 @@ async function vote (request, h) {
       } catch (err) {
         console.log(err)
       }
-
-      // send email
+      // create delayed job
       try {
-        await mailTransporter.sendMail(generateMail(email))
+        await votesQueue.createJob(vote).save()
       } catch (err) {
         console.log(err)
       }
-
       // respond with 204
       return null
     }
