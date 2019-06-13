@@ -1,5 +1,6 @@
 const Queue = require('bee-queue')
 const nodemailer = require('nodemailer')
+const fetch = require('node-fetch')
 
 const emailText = require('./emailText')
 const config = require('./config')
@@ -15,7 +16,21 @@ votesQueue.on('ready', () => {
     } catch (err) {
       console.log(err)
     }
-    // TODO: backup vote
+    // backup vote
+    if (config.backup.url && config.backup.token) {
+      try {
+        await fetch(config.backup.url, {
+          method: 'POST',
+          body: JSON.stringify(job.data),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${config.backup.token}`
+          }
+        })
+      } catch (err) {
+        console.log(err)
+      }
+    }
   })
 })
 

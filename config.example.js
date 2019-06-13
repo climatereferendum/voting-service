@@ -4,6 +4,10 @@ module.exports = {
   appUrl: 'http://localhost:8180',
   cookiePassword: 'CHANGE_ME',
   admin: 'admin@example.org',
+  backup: {
+    url: 'http://localhost:8082',
+    token: ''
+  },
   smtp: {
     host: '',
     port: 587,
