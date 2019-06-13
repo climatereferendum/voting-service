@@ -172,8 +172,15 @@ async function oauth (request, h) {
 }
 
 function getIndex (vote) {
-  const country = cache.country.find(c => c.code === vote.nationality)
-  // TODO handle first vote for country
+  let country = cache.country.find(c => c.code === vote.nationality)
+  if (!country) {
+    country = {
+      code: vote.nationality,
+      count: 0,
+      vote: []
+    }
+    cache.country.push(country)
+  }
   return country.vote.length + 1
 }
 
@@ -199,6 +206,7 @@ async function vote (request, h) {
         const country = cache.country.find(c => c.code === vote.nationality)
         country.vote = [extractPublicPart(vote), ...country.vote]
         country.count++
+        cache.country.sort((a, b) => b.count - a.count)
         stats = createStats(cache)
       } catch (err) {
         console.log(err)
