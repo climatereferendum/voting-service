@@ -5,7 +5,9 @@ const fetch = require('node-fetch')
 const emailText = require('./emailText')
 const config = require('./config')
 
-const votesQueue = new Queue('votes')
+const votesQueue = new Queue('votes', {
+  redis: { db: config.redis.db }
+})
 const mailTransporter = nodemailer.createTransport(config.smtp)
 
 votesQueue.on('ready', () => {

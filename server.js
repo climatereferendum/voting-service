@@ -7,10 +7,13 @@ const leveldown = require('leveldown')
 const encode = require('encoding-down')
 const cuid = require('cuid')
 const Queue = require('bee-queue')
-const votesQueue = new Queue('votes')
 
-const config = require('./config')
 const { populateCache, extractPublicPart } = require('./common')
+const config = require('./config')
+
+const votesQueue = new Queue('votes', {
+  redis: { db: config.redis.db }
+})
 
 const db = levelup(encode(leveldown('./db'), { valueEncoding: 'json' }))
 let cache, stats
