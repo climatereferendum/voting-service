@@ -22,11 +22,12 @@ const votes = new Array(500).fill(null).map(fakeData)
 ;(async function () {
   const cache = await populateCache(votes)
   try {
-    for (const country of cache.country) {
+    for (const country of cache) {
       for (const [index, vote] of country.vote.entries()) {
         vote.index = index + 1 // we want to start with 1
         vote.created = new Date().toISOString()
-        await db.put(faker.internet.email(), vote)
+        vote.email = faker.internet.email()
+        await db.put(vote.email, vote)
       }
     }
   } catch (e) {

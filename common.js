@@ -9,40 +9,28 @@ function extractPublicPart (vote) {
 }
 
 async function populateCache (votes) {
-  const stats = {
-    global: {
-      count: 0
-    },
-    country: []
-  }
+  const countries = []
 
   for await (const vote of votes) {
     if (!vote.created) continue
-    stats.global.count++
-    // increment country count
-    if (!stats.country.find(c => c.code === vote.nationality)) {
-      stats.country.push({
+    if (!countries.find(c => c.code === vote.nationality)) {
+      countries.push({
         code: vote.nationality,
-        count: 0,
         vote: []
       })
     }
-    stats.country.find(c => c.code === vote.nationality).vote.push(vote)
+    countries.find(c => c.code === vote.nationality).vote.push(vote)
   }
 
-  for (const country of stats.country) {
-    // set count
-    country.count = country.vote.length
-
-    // reverse order
+  for (const country of countries) {
     country.vote = country.vote.map(extractPublicPart)
     country.vote.sort((a, b) => b.index - a.index)
   }
 
   // order countries by amount of votes
-  stats.country.sort((a, b) => b.count - a.count)
+  countries.sort((a, b) => b.vote.length - a.vote.length)
 
-  return stats
+  return countries
 }
 
 module.exports = {

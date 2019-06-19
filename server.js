@@ -128,16 +128,23 @@ internals.start = async function () {
 
 internals.start()
 
-function createStats (data) {
-  return {
-    ...data,
-    country: data.country.map(country => {
+function createStats (cache) {
+  const newStats = {
+    global: {
+      count: 0
+    },
+    country: cache.map(country => {
       return {
-        ...country,
+        code: country.code,
+        count: country.vote.length,
         vote: country.vote.slice(0, 5)
       }
     })
   }
+  for (const country of cache) {
+    newStats.global.count += country.vote.length
+  }
+  return newStats
 }
 
 async function entrypoint (request, h) {
@@ -175,14 +182,13 @@ async function oauth (request, h) {
 }
 
 function getIndex (vote) {
-  let country = cache.country.find(c => c.code === vote.nationality)
+  let country = cache.find(c => c.code === vote.nationality)
   if (!country) {
     country = {
       code: vote.nationality,
-      count: 0,
       vote: []
     }
-    cache.country.push(country)
+    cache.push(country)
   }
   return country.vote.length + 1
 }
@@ -206,10 +212,9 @@ async function vote (request, h) {
       }
       try {
         await db.put(email, vote)
-        const country = cache.country.find(c => c.code === vote.nationality)
+        const country = cache.find(c => c.code === vote.nationality)
         country.vote = [extractPublicPart(vote), ...country.vote]
-        country.count++
-        cache.country.sort((a, b) => b.count - a.count)
+        cache.sort((a, b) => b.vote.length - a.vote.length)
         stats = createStats(cache)
       } catch (err) {
         console.log(err)
@@ -240,7 +245,7 @@ async function listData (request, h) {
 }
 
 async function listVotes (request, h) {
-  return cache.country.find(c => c.code === request.params.countryCode)
+  return cache.find(c => c.code === request.params.countryCode)
 }
 
 async function listStats (request, h) {
