@@ -204,6 +204,10 @@ async function vote (request, h) {
     if (request.payload.id !== vote.id || vote.created) {
       // respond with conflict
       return Boom.conflict()
+    } else if (request.payload['I accept privacy policy and terms of service'] !== 'on' ||
+               request.payload['I am over 18 years old'] !== 'on') {
+      // respond with Not Acceptable
+      return Boom.notAcceptable()
     } else {
       vote = {
         ...request.payload,
