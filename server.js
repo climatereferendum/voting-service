@@ -165,18 +165,19 @@ async function entrypoint (request, h) {
 
 async function oauth (request, h) {
   const email = request.auth.credentials.profile.email
-  let vote
-  try {
-    vote = await db.get(email)
-  } catch (err) {
-    vote = {
-      id: `${config.serviceUrl}/${cuid()}`,
-      email
+  if (email) {
+    let vote
+    try {
+      vote = await db.get(email)
+    } catch (err) {
+      vote = {
+        id: `${config.serviceUrl}/${cuid()}`,
+        email
+      }
+      await db.put(email, vote)
     }
-    await db.put(email, vote)
+    request.cookieAuth.set({ email })
   }
-  request.cookieAuth.set({ email })
-
   // redirect to app (/info)
   return h.redirect(`${config.appUrl}/info`)
 }
