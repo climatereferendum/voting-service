@@ -178,8 +178,8 @@ async function oauth (request, h) {
     }
     request.cookieAuth.set({ email })
   }
-  // redirect to app (/info)
-  return h.redirect(`${config.appUrl}/info`)
+  // redirect to app (/voters)
+  return h.redirect(`${config.appUrl}/voters`)
 }
 
 function getIndex (vote) {
