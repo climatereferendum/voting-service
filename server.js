@@ -1,7 +1,5 @@
 const Hapi = require('@hapi/hapi')
 const Boom = require('@hapi/boom')
-const Bell = require('@hapi/bell')
-const Cookie = require('@hapi/cookie')
 const levelup = require('levelup')
 const leveldown = require('leveldown')
 const encode = require('encoding-down')
@@ -27,50 +25,9 @@ internals.start = async function () {
     state: { isSameSite: false } // required for CORS
   })
 
-  await server.register([Cookie, Bell])
-
-  server.auth.strategy('session', 'cookie', {
-    cookie: {
-      name: 'fookie',
-      password: config.cookiePassword,
-      ttl: 30 * 24 * 60 * 60 * 1000, // 1000 days
-      path: '/',
-      isSameSite: false
-    },
-    keepAlive: true
-  })
-
-  server.auth.strategy('google', 'bell', {
-    provider: 'google',
-    clientId: config.google.clientId,
-    clientSecret: config.google.clientSecret,
-    password: config.cookiePassword,
-    location: config.serviceUrl
-  })
-
-  server.auth.strategy('facebook', 'bell', {
-    provider: 'facebook',
-    clientId: config.facebook.clientId,
-    clientSecret: config.facebook.clientSecret,
-    password: config.cookiePassword,
-    location: config.serviceUrl
-  })
-
   server.route({
     method: 'GET',
-    path: '/',
-    options: {
-      auth: {
-        strategy: 'session',
-        mode: 'try'
-      },
-      handler: entrypoint
-    }
-  })
-
-  server.route({
-    method: 'GET',
-    path: '/votes/{countryCode}',
+    path: '/countries/{countryCode}',
     options: {
       handler: listVotes
     }
@@ -78,44 +35,24 @@ internals.start = async function () {
 
   server.route({
     method: 'GET',
-    path: '/stats',
+    path: '/votes/{id}',
+    options: {
+      handler: showVote
+    }
+  })
+
+  server.route({
+    method: 'GET',
+    path: '/',
     options: {
       handler: listStats
     }
   })
 
   server.route({
-    method: 'GET',
-    path: '/data',
+    method: 'POST',
+    path: '/',
     options: {
-      auth: 'session',
-      handler: listData
-    }
-  })
-
-  server.route({
-    method: 'GET',
-    path: '/auth/google',
-    options: {
-      auth: 'google',
-      handler: oauth
-    }
-  })
-
-  server.route({
-    method: 'GET',
-    path: '/auth/facebook',
-    options: {
-      auth: 'facebook',
-      handler: oauth
-    }
-  })
-
-  server.route({
-    method: 'PUT',
-    path: '/{cuid}',
-    options: {
-      auth: 'session',
       handler: vote
     }
   })
@@ -147,41 +84,6 @@ function createStats (cache) {
   return newStats
 }
 
-async function entrypoint (request, h) {
-  const info = {
-    authProviders: {
-      facebook: '/auth/facebook',
-      google: '/auth/google'
-    }
-  }
-  if (request.auth.credentials) {
-    const email = request.auth.credentials.email
-    const vote = await db.get(email)
-    // TODO handle if somehow vote doesn't exist
-    info.vote = vote
-  }
-  return info
-}
-
-async function oauth (request, h) {
-  const email = request.auth.credentials.profile.email
-  if (email) {
-    let vote
-    try {
-      vote = await db.get(email)
-    } catch (err) {
-      vote = {
-        id: `${config.serviceUrl}/${cuid()}`,
-        email
-      }
-      await db.put(email, vote)
-    }
-    request.cookieAuth.set({ email })
-  }
-  // redirect to app (/voters)
-  return h.redirect(`${config.appUrl}/voters`)
-}
-
 function getIndex (vote) {
   let country = cache.find(c => c.code === vote.nationality)
   if (!country) {
@@ -196,57 +98,71 @@ function getIndex (vote) {
 
 // PUT
 async function vote (request, h) {
-  const email = request.auth.credentials.email
-  if (request.payload.email !== email) {
-    return Boom.forbidden()
+  // check if vote existis
+  let vote
+  try {
+    vote = await db.get(request.payload.email)
+  } catch (e) { }
+  if (vote) {
+    // respond with conflict
+    return Boom.conflict()
+  } else if (request.payload['I accept privacy policy and terms of service'] !== 'on' ||
+              request.payload['I am over 18 years old'] !== 'on') {
+    // respond with Not Acceptable
+    return Boom.notAcceptable()
   } else {
-    // check if vote existis
-    let vote = await db.get(email)
-    if (request.payload.id !== vote.id || vote.created) {
-      // respond with conflict
-      return Boom.conflict()
-    } else if (request.payload['I accept privacy policy and terms of service'] !== 'on' ||
-               request.payload['I am over 18 years old'] !== 'on') {
-      // respond with Not Acceptable
-      return Boom.notAcceptable()
-    } else {
-      vote = {
-        ...request.payload,
-        created: new Date().toISOString(),
-        index: getIndex(request.payload)
-      }
-      try {
-        await db.put(email, vote)
-        const country = cache.find(c => c.code === vote.nationality)
-        country.vote = [extractPublicPart(vote), ...country.vote]
-        cache.sort((a, b) => b.vote.length - a.vote.length)
-        stats = createStats(cache)
-      } catch (err) {
-        console.log(err)
-      }
-      // create delayed job
-      try {
-        await votesQueue.createJob(vote).save()
-      } catch (err) {
-        console.log(err)
-      }
-      // respond with 204
-      return null
+    vote = {
+      id: cuid(),
+      ...request.payload,
+      created: new Date().toISOString()
     }
+    try {
+      await db.put(request.payload.email, vote)
+    } catch (err) {
+      console.log(err)
+    }
+    // create delayed job
+    try {
+      await votesQueue.createJob(vote).save()
+    } catch (err) {
+      console.log(err)
+    }
+    // respond with 204
+    return null
   }
 }
 
-async function listData (request, h) {
-  const email = request.auth.credentials.email
-  if (email !== config.admin) {
-    return Boom.forbidden()
-  } else {
-    const list = []
-    for await (const vote of db.createValueStream()) {
-      list.push(vote)
+async function showVote (request, h) {
+  // find vote
+  let vote
+  let publicPart
+  for await (const v of db.createValueStream()) {
+    if (v.id === request.params.id) {
+      vote = v
     }
-    return list
   }
+  if (!vote) return Boom.notFound()
+  // confirm if needed
+  if (!vote.confirmed) {
+    vote.index = getIndex(vote)
+    vote.confirmed = new Date().toISOString()
+    await db.put(vote.email, vote)
+    // create delayed job
+    try {
+      await votesQueue.createJob(vote).save()
+    } catch (err) {
+      console.log(err)
+    }
+    const country = cache.find(c => c.code === vote.nationality)
+    publicPart = extractPublicPart(vote)
+    country.vote = [publicPart, ...country.vote]
+    cache.sort((a, b) => b.vote.length - a.vote.length)
+    stats = createStats(cache)
+  }
+  if (!publicPart) publicPart = extractPublicPart(vote)
+
+  // respond with public part
+  return publicPart
 }
 
 async function listVotes (request, h) {

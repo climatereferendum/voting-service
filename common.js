@@ -12,7 +12,7 @@ async function populateCache (votes) {
   const countries = []
 
   for await (const vote of votes) {
-    if (!vote.created) continue
+    if (!vote.confirmed) continue
     if (!countries.find(c => c.code === vote.nationality)) {
       countries.push({
         code: vote.nationality,
