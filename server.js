@@ -1,24 +1,38 @@
 const Hapi = require('@hapi/hapi')
 const Boom = require('@hapi/boom')
-const levelup = require('levelup')
-const leveldown = require('leveldown')
-const encode = require('encoding-down')
-const cuid = require('cuid')
+const { MongoClient, ObjectId } = require('mongodb')
 const Queue = require('bee-queue')
 
-const { populateCache, extractPublicPart } = require('./common')
+const { populateCache, addToCache, extractPublicPart, createStats } = require('./common')
 const config = require('./config')
 
-const votesQueue = new Queue('votes', {
-  redis: { db: config.redis.db }
-})
+const mongoClient = new MongoClient(config.mongo.url)
+const votesQueue = new Queue('votes', { redis: config.redis })
 
-const db = levelup(encode(leveldown('./db'), { valueEncoding: 'json' }))
-let cache, stats
-
+let votes, cache, stats
 const internals = {}
 
+async function refreshCacheAndStats () {
+  cache = populateCache(await votes.find({
+    confirmed: { $exists: true, $ne: null },
+    disabled: false
+  }).sort('confirmed', -1).toArray())
+  stats = createStats(cache)
+  return 'done'
+}
+
 internals.start = async function () {
+  try {
+    await mongoClient.connect()
+    console.debug("Connected to mongodb")
+
+    const db = mongoClient.db(config.mongo.database)
+    votes = db.collection(config.mongo.collection)
+  } catch (err) {
+    console.error(err.stack)
+  }
+  await refreshCacheAndStats () 
+
   const server = Hapi.server({
     port: config.port,
     routes: { cors: { credentials: true } },
@@ -50,6 +64,14 @@ internals.start = async function () {
   })
 
   server.route({
+    method: 'GET',
+    path: `/${config.flushSecret}`,
+    options: {
+      handler: refreshCacheAndStats
+    }
+  })
+
+  server.route({
     method: 'POST',
     path: '/',
     options: {
@@ -57,52 +79,18 @@ internals.start = async function () {
     }
   })
 
-  cache = await populateCache(db.createValueStream())
-  stats = createStats(cache)
-
   await server.start()
 }
 
 internals.start()
-
-function createStats (cache) {
-  const newStats = {
-    global: {
-      count: 0
-    },
-    country: cache.map(country => {
-      return {
-        code: country.code,
-        count: country.vote.length,
-        vote: country.vote.slice(0, 5)
-      }
-    })
-  }
-  for (const country of cache) {
-    newStats.global.count += country.vote.length
-  }
-  return newStats
-}
-
-function getIndex (vote) {
-  let country = cache.find(c => c.code === vote.nationality)
-  if (!country) {
-    country = {
-      code: vote.nationality,
-      vote: []
-    }
-    cache.push(country)
-  }
-  return country.vote.length + 1
-}
 
 // PUT
 async function vote (request, h) {
   // check if vote existis
   let vote
   try {
-    vote = await db.get(request.payload.email)
-  } catch (e) { }
+    vote = await votes.findOne({ email: request.payload.email })
+  } catch (err) { console.log(err) }
   if (vote) {
     // respond with conflict
     return Boom.conflict()
@@ -112,12 +100,13 @@ async function vote (request, h) {
     return Boom.notAcceptable()
   } else {
     vote = {
-      id: cuid(),
       ...request.payload,
-      created: new Date().toISOString()
+      created: new Date().toISOString(),
+      confirmed: null,
+      disabled: false
     }
     try {
-      await db.put(request.payload.email, vote)
+      await votes.insertOne(vote)
     } catch (err) {
       console.log(err)
     }
@@ -134,29 +123,34 @@ async function vote (request, h) {
 
 async function showVote (request, h) {
   // find vote
-  let vote
   let publicPart
-  for await (const v of db.createValueStream()) {
-    if (v.id === request.params.id) {
-      vote = v
-    }
-  }
+  const _id = ObjectId(request.params.id)
+  let vote = await votes.findOne(_id)
   if (!vote) return Boom.notFound()
   // confirm if needed
   if (!vote.confirmed) {
-    vote.index = getIndex(vote)
-    vote.confirmed = new Date().toISOString()
-    await db.put(vote.email, vote)
+    // set confirmed data
+    try {
+      vote = await votes.findOneAndUpdate(
+        { _id },
+        {
+          $set: {
+            confirmed: new Date().toISOString()
+          }
+        },
+        { returnNewDocument: true}
+      )
+    } catch (err) {
+      console.log(err)
+    }
     // create delayed job
     try {
       await votesQueue.createJob(vote).save()
     } catch (err) {
       console.log(err)
     }
-    const country = cache.find(c => c.code === vote.nationality)
-    publicPart = extractPublicPart(vote)
-    country.vote = [publicPart, ...country.vote]
-    cache.sort((a, b) => b.vote.length - a.vote.length)
+    // update cache and stats
+    cache = addToCache(vote, cache)
     stats = createStats(cache)
   }
   if (!publicPart) publicPart = extractPublicPart(vote)

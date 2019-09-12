@@ -1,39 +1,76 @@
 function extractPublicPart (vote) {
   return {
-    index: vote.index,
     name: vote.name,
     nationality: vote.nationality,
     description: vote.description,
-    opinion: vote.opinion
+    opinion: vote.opinion,
+    confirmed: vote.confirmed
   }
 }
 
-async function populateCache (votes) {
-  const countries = []
-
-  for await (const vote of votes) {
-    if (!vote.confirmed) continue
-    if (!countries.find(c => c.code === vote.nationality)) {
-      countries.push({
-        code: vote.nationality,
-        vote: []
-      })
+function findOrAddCountry(vote, data) {
+  let country = data.find(c => c.code === vote.nationality)
+  if (!country) {
+    country = {
+      code: vote.nationality,
+      vote: []
     }
-    countries.find(c => c.code === vote.nationality).vote.push(vote)
+    data.push(country)
   }
-
-  for (const country of countries) {
-    country.vote = country.vote.map(extractPublicPart)
-    country.vote.sort((a, b) => b.index - a.index)
-  }
-
-  // order countries by amount of votes
-  countries.sort((a, b) => b.vote.length - a.vote.length)
-
-  return countries
+  return { country, data }
 }
+
+function populateCache (votes) {
+  let data = []
+
+  for (const vote of votes) {
+    let country
+    ;({ country, data } = findOrAddCountry(vote, data))
+
+    country.vote.push(vote)
+  }
+
+  for (const country of data) {
+    country.vote = country.vote.map(extractPublicPart)
+  }
+
+  // order data by amount of votes
+  data.sort((a, b) => b.vote.length - a.vote.length)
+
+  return data
+}
+
+function addToCache (vote, cache) {
+  let { country, data } = findOrAddCountry(vote, cache)
+  publicPart = extractPublicPart(vote)
+  country.vote = [publicPart, ...country.vote]
+  data.sort((a, b) => b.vote.length - a.vote.length)
+  return data
+}
+
+function createStats (cache) {
+  const newStats = {
+    global: {
+      count: 0
+    },
+    country: cache.map(country => {
+      return {
+        code: country.code,
+        count: country.vote.length,
+        vote: country.vote.slice(0, 5)
+      }
+    })
+  }
+  for (const country of cache) {
+    newStats.global.count += country.vote.length
+  }
+  return newStats
+}
+
 
 module.exports = {
   populateCache,
-  extractPublicPart
+  addToCache,
+  extractPublicPart,
+  createStats
 }

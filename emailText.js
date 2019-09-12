@@ -1,7 +1,7 @@
 const config = require('./config')
 
 function voteUrl (vote) {
-  return `${config.appUrl}/voters/${vote.id}`
+  return `${config.appUrl}/voters/${vote._id}`
 }
 const footer = `
 ---------
