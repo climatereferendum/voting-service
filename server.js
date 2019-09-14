@@ -131,15 +131,16 @@ async function showVote (request, h) {
   if (!vote.confirmed) {
     // set confirmed data
     try {
-      vote = await votes.findOneAndUpdate(
+      const result  = await votes.findOneAndUpdate(
         { _id },
         {
           $set: {
             confirmed: new Date().toISOString()
           }
         },
-        { returnNewDocument: true}
+        { returnOriginal: false }
       )
+      vote = result.value
     } catch (err) {
       console.log(err)
     }
