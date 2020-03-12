@@ -1,10 +1,10 @@
-const Hapi = require('@hapi/hapi')
-const Boom = require('@hapi/boom')
-const { MongoClient, ObjectId } = require('mongodb')
-const Queue = require('bee-queue')
+import Hapi from '@hapi/hapi'
+import Boom from '@hapi/boom'
+import { MongoClient, ObjectId } from 'mongodb'
+import Queue from 'bee-queue'
 
-const { populateCache, addToCache, extractPublicPart, createStats } = require('./common')
-const config = require('./config')
+import { populateCache, addToCache, extractPublicPart, createStats } from './common'
+import config from './config'
 
 const mongoClient = new MongoClient(config.mongo.url)
 const votesQueue = new Queue('votes', { redis: config.redis })

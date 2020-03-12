@@ -1,4 +1,14 @@
-function extractPublicPart (vote) {
+import { solutions } from '@aliceingovernment/data'
+
+function calculateResults (votes) {
+  const solutionVotes = votes.flatMap(v => v.solutions)
+  return solutions.map(solution => ({
+    solution: solution.slug,
+    voteCount: solutionVotes.filter(sv => sv === solution.slug).length
+  })).sort((a, b) => b.voteCount - a.voteCount)
+}
+
+export function extractPublicPart (vote) {
   return {
     name: vote.name,
     nationality: vote.nationality,
@@ -20,7 +30,7 @@ function findOrAddCountry(vote, data) {
   return { country, data }
 }
 
-function populateCache (votes) {
+export function populateCache (votes) {
   let data = []
 
   for (const vote of votes) {
@@ -30,34 +40,31 @@ function populateCache (votes) {
     country.vote.push(vote)
   }
 
-  for (const country of data) {
-    country.vote = country.vote.map(extractPublicPart)
-  }
-
   // order data by amount of votes
   data.sort((a, b) => b.vote.length - a.vote.length)
 
   return data
 }
 
-function addToCache (vote, cache) {
+export function addToCache (vote, cache) {
   let { country, data } = findOrAddCountry(vote, cache)
-  publicPart = extractPublicPart(vote)
-  country.vote = [publicPart, ...country.vote]
+  country.vote = [vote, ...country.vote]
   data.sort((a, b) => b.vote.length - a.vote.length)
   return data
 }
 
-function createStats (cache) {
+export function createStats (cache) {
   const newStats = {
     global: {
-      count: 0
+      count: 0,
+      result: calculateResults(cache.flatMap(country => country.vote))
     },
     country: cache.map(country => {
       return {
         code: country.code,
         count: country.vote.length,
-        vote: country.vote.slice(0, 5)
+        vote: country.vote.slice(0, 5),
+        result: calculateResults(country.vote)
       }
     })
   }
@@ -65,12 +72,4 @@ function createStats (cache) {
     newStats.global.count += country.vote.length
   }
   return newStats
-}
-
-
-module.exports = {
-  populateCache,
-  addToCache,
-  extractPublicPart,
-  createStats
 }

@@ -4,9 +4,8 @@
   "description": "simple service to collect votes (uses social login)",
   "main": "server.js",
   "scripts": {
-    "start": "node --inspect server.js",
-    "faker": "node -r esm faker.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node --inspect -r esm server.js",
+    "faker": "node -r esm faker.js"
   },
   "author": "",
   "license": "Unlicense",
