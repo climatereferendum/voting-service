@@ -3,7 +3,12 @@ import Boom from '@hapi/boom'
 import { MongoClient, ObjectId } from 'mongodb'
 import Queue from 'bee-queue'
 
-import { populateCache, addToCache, extractPublicPart, createStats } from './common'
+import { universities, solutions } from '@aliceingovernment/data'
+import { populateCache,
+         addToCache,
+         extractPublicPart,
+         createStats,
+         determineUniversity } from './common'
 import config from './config'
 
 const mongoClient = new MongoClient(config.mongo.url)
@@ -15,6 +20,7 @@ const internals = {}
 async function refreshCacheAndStats () {
   cache = populateCache(await votes.find({
     confirmed: { $exists: true, $ne: null },
+    pending: false,
     disabled: false
   }).sort('confirmed', -1).toArray())
   stats = createStats(cache)
@@ -85,6 +91,8 @@ internals.start = async function () {
 internals.start()
 
 // PUT
+// TODO: check if two solutions and both from solutions list
+// TODO: check if email not from well know non-university provicer
 async function vote (request, h) {
   // check if vote existis
   let vote
@@ -94,8 +102,7 @@ async function vote (request, h) {
   if (vote) {
     // respond with conflict
     return Boom.conflict()
-  } else if (request.payload['I accept privacy policy and terms of service'] !== 'on' ||
-              request.payload['I am over 18 years old'] !== 'on') {
+  } else if (!request.payload.policiesAgreement) {
     // respond with Not Acceptable
     return Boom.notAcceptable()
   } else {
@@ -103,6 +110,7 @@ async function vote (request, h) {
       ...request.payload,
       created: new Date().toISOString(),
       confirmed: null,
+      pending: !determineUniversity(request.payload.email),
       disabled: false
     }
     try {
@@ -123,7 +131,6 @@ async function vote (request, h) {
 
 async function showVote (request, h) {
   // find vote
-  let publicPart
   const _id = ObjectId(request.params.id)
   let vote = await votes.findOne(_id)
   if (!vote) return Boom.notFound()
@@ -154,10 +161,9 @@ async function showVote (request, h) {
     cache = addToCache(vote, cache)
     stats = createStats(cache)
   }
-  if (!publicPart) publicPart = extractPublicPart(vote)
 
   // respond with public part
-  return publicPart
+  return extractPublicPart(vote)
 }
 
 async function listVotes (request, h) {

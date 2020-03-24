@@ -7,29 +7,28 @@ import config from './config'
 const FAKES_COUNT = 50
 
 const mongoClient = new MongoClient(config.mongo.url)
-const universitySlugs = universities.map(u => u.slug)
-const solutionSlugs =  solutions.map(s => s.slug)
+
+function randomUniversityDomain() {
+ return faker.random.arrayElement(universities.flatMap(u => u.domains))
+}
 
 function fakeVote () {
-    let votedSolutions = [
-      faker.random.arrayElement(solutionSlugs)
-    ]
-    votedSolutions.push(
-      faker.random.arrayElement(
-        solutionSlugs.filter(slug => slug !== votedSolutions[1])
-      )
+    const solutionSlugs =  solutions.map(s => s.slug)
+    const firstSolution = faker.random.arrayElement(solutionSlugs)
+    const secondSolution = faker.random.arrayElement(
+      solutionSlugs.filter(slug => slug !== firstSolution)
     )
     return {
       // TODO rename to university
-      nationality: faker.random.arrayElement(universitySlugs),
       name: faker.name.findName(),
-      desciption: faker.company.catchPhrase(),
-      opinion: faker.lorem.paragraphs(5),
-      email: faker.internet.email(),
+      opinion: faker.lorem.paragraphs(1),
+      email: `${faker.internet.userName()}@${randomUniversityDomain()}`,
+      policiesAgreement: true,
       created: new Date().toISOString(),
       confirmed: new Date().toISOString(),
       disabled: false,
-      solutions: votedSolutions
+      pending: false,
+      solutions: [firstSolution, secondSolution]
     }
 }
 

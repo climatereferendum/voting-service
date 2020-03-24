@@ -1,4 +1,4 @@
-import { solutions } from '@aliceingovernment/data'
+import { solutions, universities } from '@aliceingovernment/data'
 
 function calculateResults (votes) {
   const solutionVotes = votes.flatMap(v => v.solutions)
@@ -18,11 +18,21 @@ export function extractPublicPart (vote) {
   }
 }
 
+export function determineUniversity (email) {
+  const emailDomain = email.split('@')[1]
+  const matchingUniversity = universities.find(university => {
+    return university.domains.find(domain => emailDomain.match(new RegExp(`${domain}$`)))
+  })
+  if (matchingUniversity) return matchingUniversity.slug
+}
+
 function findOrAddCountry(vote, data) {
-  let country = data.find(c => c.code === vote.nationality)
+  const countryCode = determineUniversity(vote.email)
+  let country = data.find(c => c.code === countryCode)
   if (!country) {
     country = {
-      code: vote.nationality,
+      code: countryCode,
+      count: 0,
       vote: []
     }
     data.push(country)
@@ -38,6 +48,7 @@ export function populateCache (votes) {
     ;({ country, data } = findOrAddCountry(vote, data))
 
     country.vote.push(vote)
+    country.count = country.vote.length
   }
 
   // order data by amount of votes
@@ -49,6 +60,7 @@ export function populateCache (votes) {
 export function addToCache (vote, cache) {
   let { country, data } = findOrAddCountry(vote, cache)
   country.vote = [vote, ...country.vote]
+  country.count = country.vote.length
   data.sort((a, b) => b.vote.length - a.vote.length)
   return data
 }

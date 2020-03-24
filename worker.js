@@ -18,6 +18,7 @@ votesQueue.on('ready', () => {
     } catch (err) {
       console.log(err)
     }
+    // TODO: send email if vote pending
     // backup vote
     if (config.backup.url && config.backup.token && job.data.confirmed) {
       try {
