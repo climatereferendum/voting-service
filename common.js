@@ -11,8 +11,7 @@ function calculateResults (votes) {
 export function extractPublicPart (vote) {
   return {
     name: vote.name,
-    nationality: vote.nationality,
-    description: vote.description,
+    university: determineUniversity(vote.email),
     opinion: vote.opinion,
     confirmed: vote.confirmed
   }
