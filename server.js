@@ -157,9 +157,11 @@ async function showVote (request, h) {
     } catch (err) {
       console.log(err)
     }
-    // update cache and stats
-    cache = addToCache(vote, cache)
-    stats = createStats(cache)
+    // update cache and stats unless pending
+    if (!vote.pending) {
+      cache = addToCache(vote, cache)
+      stats = createStats(cache)
+    }
   }
 
   // respond with public part
