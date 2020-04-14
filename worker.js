@@ -18,7 +18,14 @@ votesQueue.on('ready', () => {
     } catch (err) {
       console.log(err)
     }
-    // TODO: send email if vote pending
+    // notify admin if vote pending
+    if (job.data.pending) {
+      try {
+        await mailTransporter.sendMail(notifyPendingMail(job.data))
+      } catch (err) {
+        console.log(err)
+      }
+    }
     // backup vote
     if (config.backup.url && config.backup.token && job.data.confirmed) {
       try {
@@ -37,9 +44,18 @@ votesQueue.on('ready', () => {
   })
 })
 
+function notifyPendingMail (vote) {
+  return {
+    from: `"Climate Referendum" <${config.smtp.auth.user}>`,
+    to: config.admin.email,
+    subject: 'New pending vote',
+    text: JSON.stringify(vote, null, 4)
+  }
+}
+
 function generateMail (vote) {
   const email = {
-    from: `"Alice in Government" <${config.smtp.auth.user}>`,
+    from: `"Climate Referendum" <${config.smtp.auth.user}>`,
     to: vote.email
   }
   if (vote.confirmed) {

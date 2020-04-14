@@ -25,5 +25,8 @@ module.exports = {
       user: '',
       pass: ''
     }
+  },
+  admin: {
+    email: 'admin@example.org'
   }
 }
