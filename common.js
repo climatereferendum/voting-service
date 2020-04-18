@@ -74,7 +74,7 @@ export function createStats (cache) {
       return {
         code: country.code,
         count: country.vote.length,
-        vote: country.vote.slice(0, 5),
+        vote: country.vote.slice(0, 2),
         result: calculateResults(country.vote)
       }
     })

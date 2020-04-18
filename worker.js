@@ -19,7 +19,7 @@ votesQueue.on('ready', () => {
       console.log(err)
     }
     // notify admin if vote pending
-    if (job.data.pending) {
+    if (job.data.pending && job.data.confirmed) {
       try {
         await mailTransporter.sendMail(notifyPendingMail(job.data))
       } catch (err) {
