@@ -39,6 +39,15 @@ function findOrAddCountry(vote, data) {
   return { country, data }
 }
 
+function sortByName(a, b) {
+  let res = 0
+  const aName = universities.find(u => u.slug === a.code).name
+  const bName = universities.find(u => u.slug === b.code).name
+  if (aName < bName) res = -1
+  if (aName > bName) res = 1
+  return res
+}
+
 export function populateCache (votes) {
   let data = []
 
@@ -51,7 +60,7 @@ export function populateCache (votes) {
   }
 
   // order data by amount of votes
-  data.sort((a, b) => b.vote.length - a.vote.length)
+  data.sort(sortByName)
 
   return data
 }
@@ -60,7 +69,6 @@ export function addToCache (vote, cache) {
   let { country, data } = findOrAddCountry(vote, cache)
   country.vote = [vote, ...country.vote]
   country.count = country.vote.length
-  data.sort((a, b) => b.vote.length - a.vote.length)
   return data
 }
 
