@@ -25,7 +25,7 @@ Estonian Address Kiriku 6, Tallinn, 10130, Estonia
 module.exports = {
   doneEmailText: function (vote) {
     return `
-${confirmedPreable(vote)}
+${confirmedPreamble(vote)}
 
 You can always find your vote here: ${voteUrl(vote)}
 
