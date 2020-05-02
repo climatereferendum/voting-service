@@ -165,7 +165,9 @@ async function showVote (request, h) {
   }
 
   // respond with public part
-  return extractPublicPart(vote)
+  const extracted = extractPublicPart(vote)
+  extracted.pending = vote.pending
+  return extracted
 }
 
 async function listVotes (request, h) {
