@@ -55,7 +55,7 @@ function notifyPendingMail (vote) {
 
 function generateMail (vote) {
   const email = {
-    from: `"Climate Referendum" <${config.smtp.auth.user}>`,
+    from: `"Climate Referendum" <${config.fromEmail}>`,
     to: vote.email
   }
   if (vote.confirmed) {

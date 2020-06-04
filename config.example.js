@@ -3,6 +3,7 @@ module.exports = {
   serviceUrl: 'http://localhost:8081',
   appUrl: 'http://localhost:8180',
   flushSecret: '030f4d9e-d591-11e9-8357-10ddb1a009c3',
+  fromEmail: 'hello@example.org',
   mongo: {
     url: 'mongodb://localhost:27017',
     database: 'aliceingov',
