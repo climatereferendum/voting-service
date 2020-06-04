@@ -19,7 +19,6 @@ const footer = `
 ---------
 
 Twitter: https://twitter.com/climate_r
-Estonian Address Kiriku 6, Tallinn, 10130, Estonia
 
 `
 module.exports = {
