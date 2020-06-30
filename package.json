@@ -10,14 +10,14 @@
   "author": "",
   "license": "Unlicense",
   "dependencies": {
+    "@aliceingovernment/data": "git+https://github.com/climatereferendum/data.git",
     "@hapi/boom": "^9.0.0",
     "@hapi/hapi": "^19.1.1",
     "bee-queue": "^1.2.3",
     "esm": "^3.2.25",
     "mongodb": "^3.5.4",
     "node-fetch": "^2.6.0",
-    "nodemailer": "^6.4.4",
-    "@aliceingovernment/data": "https://github.com/aliceingovernment/data.git"
+    "nodemailer": "^6.4.4"
   },
   "devDependencies": {
     "faker": "^4.1.0",

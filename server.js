@@ -3,7 +3,7 @@ import Boom from '@hapi/boom'
 import { MongoClient, ObjectId } from 'mongodb'
 import Queue from 'bee-queue'
 
-import { universities, solutions } from '@aliceingovernment/data'
+import { universities, solutions, emailProviders } from '@aliceingovernment/data'
 import { populateCache,
          addToCache,
          extractPublicPart,
@@ -175,7 +175,7 @@ async function listVotes (request, h) {
 }
 
 async function listStats (request, h) {
-  return stats
+  return { stats, universities, solutions, emailProviders }
 }
 
 process.on('unhandledRejection', (err) => {
