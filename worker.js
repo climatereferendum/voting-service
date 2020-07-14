@@ -46,7 +46,7 @@ votesQueue.on('ready', () => {
 
 function notifyPendingMail (vote) {
   return {
-    from: `"Climate Referendum" <${config.smtp.auth.user}>`,
+    from: `"Climate Referendum" <${config.fromEmail}>`,
     to: config.admin.email,
     subject: 'New pending vote',
     text: JSON.stringify(vote, null, 4)
