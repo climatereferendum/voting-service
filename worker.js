@@ -32,7 +32,7 @@ votesQueue.on('ready', () => {
       handleError(err)
     }
     // notify admin if vote pending
-    if (job.data.pending && job.data.confirmed) {
+    if (job.data.pending && !job.data.confirmed) {
       try {
         await mailTransporter.sendMail(notifyPendingMail(job.data))
       } catch (err) {
