@@ -110,7 +110,7 @@ async function vote (request, h) {
   // check if vote existis
   let vote
   try {
-    vote = await votes.findOne({ email: request.payload.email })
+    vote = await votes.findOne({ email: { $regex: request.payload.email, $options: 'i' }})
   } catch (err) { handleError(err) }
   if (vote) {
     // respond with conflict
