@@ -2,6 +2,7 @@ import Hapi from '@hapi/hapi'
 import Boom from '@hapi/boom'
 import { MongoClient, ObjectId } from 'mongodb'
 import Queue from 'bee-queue'
+import * as Sentry from '@sentry/node'
 
 import { universities, solutions, emailProviders } from '@aliceingovernment/data'
 import { populateCache,
@@ -10,6 +11,18 @@ import { populateCache,
          createStats,
          determineUniversity } from './common'
 import config from './config'
+
+if (config.sentry.worker) {
+  Sentry.init({ dsn: config.sentry.worker })
+}
+
+function handleError(err) {
+  if (config.sentry.worker) {
+    Sentry.captureException(err)
+  } else {
+    console.error(err)
+  }
+}
 
 const mongoClient = new MongoClient(config.mongo.url)
 const votesQueue = new Queue('votes', { redis: config.redis })
@@ -98,7 +111,7 @@ async function vote (request, h) {
   let vote
   try {
     vote = await votes.findOne({ email: request.payload.email })
-  } catch (err) { console.log(err) }
+  } catch (err) { handleError(err) }
   if (vote) {
     // respond with conflict
     return Boom.conflict()
@@ -116,13 +129,13 @@ async function vote (request, h) {
     try {
       await votes.insertOne(vote)
     } catch (err) {
-      console.log(err)
+      handleError(err)
     }
     // create delayed job
     try {
       await votesQueue.createJob(vote).save()
     } catch (err) {
-      console.log(err)
+      handleError(err)
     }
     // respond with 204
     return null
@@ -149,13 +162,13 @@ async function showVote (request, h) {
       )
       vote = result.value
     } catch (err) {
-      console.log(err)
+      handleError(err)
     }
     // create delayed job
     try {
       await votesQueue.createJob(vote).save()
     } catch (err) {
-      console.log(err)
+      handleError(err)
     }
     // update cache and stats unless pending
     if (!vote.pending) {
@@ -179,6 +192,6 @@ async function listStats (request, h) {
 }
 
 process.on('unhandledRejection', (err) => {
-  console.log(err)
+  handleError(err)
   process.exit(1)
 })

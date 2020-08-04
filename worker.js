@@ -1,9 +1,22 @@
 const Queue = require('bee-queue')
 const nodemailer = require('nodemailer')
 const fetch = require('node-fetch')
+const Sentry = require('@sentry/node')
 
 const { doneEmailText, confirmEmailText } = require('./emailText')
 const config = require('./config')
+
+if (config.sentry.worker) {
+  Sentry.init({ dsn: config.sentry.worker })
+}
+
+function handleError(err) {
+  if (config.sentry.worker) {
+    Sentry.captureException(err)
+  } else {
+    console.error(err)
+  }
+}
 
 const votesQueue = new Queue('votes', {
   redis: { db: config.redis.db }
@@ -16,14 +29,14 @@ votesQueue.on('ready', () => {
     try {
       await mailTransporter.sendMail(generateMail(job.data))
     } catch (err) {
-      console.log(err)
+      handleError(err)
     }
     // notify admin if vote pending
     if (job.data.pending && job.data.confirmed) {
       try {
         await mailTransporter.sendMail(notifyPendingMail(job.data))
       } catch (err) {
-        console.log(err)
+        handleError(err)
       }
     }
     // backup vote
@@ -38,7 +51,7 @@ votesQueue.on('ready', () => {
           }
         })
       } catch (err) {
-        console.log(err)
+        handleError(err)
       }
     }
   })

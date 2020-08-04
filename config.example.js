@@ -29,5 +29,9 @@ module.exports = {
   },
   admin: {
     email: 'admin@example.org'
+  },
+  sentry: {
+    service: '',
+    worker: ''
   }
 }
