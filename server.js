@@ -4,12 +4,13 @@ import { MongoClient, ObjectId } from 'mongodb'
 import Queue from 'bee-queue'
 import * as Sentry from '@sentry/node'
 
-import { universities, solutions, emailProviders } from '@aliceingovernment/data'
+import { universities as links, solutions, emailProviders } from '@aliceingovernment/data'
 import { populateCache,
          addToCache,
          extractPublicPart,
          createStats,
          determineUniversity } from './common'
+const allUniversities = require('./universities.json')
 import config from './config'
 
 if (config.sentry.worker) {
@@ -27,8 +28,20 @@ function handleError(err) {
 const mongoClient = new MongoClient(config.mongo.url)
 const votesQueue = new Queue('votes', { redis: config.redis })
 
-let votes, cache, stats
+let votes, cache, stats, universities
 const internals = {}
+
+function selectUniversitiesWithVotes(all, stats) {
+   return all.filter(u => stats.country.find(c => u.domains.includes(c.code)))
+     .map(u => {
+       const withLinks = links.find(l => u.domains.includes(l.domain))
+       return { 
+        name: u.name,
+        domains: u.domains,
+        links: withLinks ? withLinks.links : null
+       }
+     })
+}
 
 async function refreshCacheAndStats () {
   cache = populateCache(await votes.find({
@@ -37,6 +50,7 @@ async function refreshCacheAndStats () {
     disabled: false
   }).sort('confirmed', -1).toArray())
   stats = createStats(cache)
+  universities = selectUniversitiesWithVotes(allUniversities, stats)
   return 'done'
 }
 
@@ -60,7 +74,7 @@ internals.start = async function () {
 
   server.route({
     method: 'GET',
-    path: '/countries/{countryCode}',
+    path: '/countries/{domain}',
     options: {
       handler: listVotes
     }
@@ -184,7 +198,7 @@ async function showVote (request, h) {
 }
 
 async function listVotes (request, h) {
-  return cache.find(c => c.code === request.params.countryCode)
+  return cache.find(c => c.code === request.params.domain)
 }
 
 async function listStats (request, h) {

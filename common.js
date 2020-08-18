@@ -1,4 +1,5 @@
-import { solutions, universities } from '@aliceingovernment/data'
+import { solutions } from '@aliceingovernment/data'
+const universities = require('./universities.json')
 
 function calculateResults (votes) {
   const solutionVotes = votes.flatMap(v => v.solutions)
@@ -22,15 +23,15 @@ export function determineUniversity (email) {
   const matchingUniversity = universities.find(university => {
     return university.domains.find(domain => emailDomain.match(new RegExp(`${domain}$`)))
   })
-  if (matchingUniversity) return matchingUniversity.slug
+  if (matchingUniversity) return matchingUniversity.domains[0]
 }
 
 function findOrAddCountry(vote, data) {
-  const countryCode = determineUniversity(vote.email)
-  let country = data.find(c => c.code === countryCode)
+  const primaryDomain = determineUniversity(vote.email)
+  let country = data.find(c => c.code === primaryDomain)
   if (!country) {
     country = {
-      code: countryCode,
+      code: primaryDomain,
       count: 0,
       vote: []
     }

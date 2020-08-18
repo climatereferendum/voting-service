@@ -1,10 +1,12 @@
 import faker from 'faker'
 import { MongoClient } from 'mongodb'
 
-import { universities, solutions } from '@aliceingovernment/data'
+import { solutions } from '@aliceingovernment/data'
 import config from './config'
 
-const FAKES_COUNT = 50
+const universities = require('./universities.json').slice(0, 20)
+
+const FAKES_COUNT = 100
 
 const mongoClient = new MongoClient(config.mongo.url)
 
