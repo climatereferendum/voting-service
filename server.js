@@ -198,7 +198,11 @@ async function showVote (request, h) {
 }
 
 async function listVotes (request, h) {
-  return cache.find(c => c.code === request.params.domain)
+  const uni = cache.find(c => c.code === request.params.domain)
+  return  {
+    ...uni,
+    vote: uni.vote.map(v => extractPublicPart(v))
+  }
 }
 
 async function listStats (request, h) {

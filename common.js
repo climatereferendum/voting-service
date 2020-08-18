@@ -75,7 +75,7 @@ export function createStats (cache) {
       return {
         code: country.code,
         count: country.vote.length,
-        vote: country.vote.slice(0, 2),
+        vote: country.vote.slice(0, 2).map(v => extractPublicPart(v)),
         result: calculateResults(country.vote)
       }
     })
