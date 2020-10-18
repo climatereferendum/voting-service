@@ -10,7 +10,7 @@
   "author": "",
   "license": "Unlicense",
   "dependencies": {
-    "@aliceingovernment/data": "git+https://github.com/climatereferendum/data.git",
+    "@climatereferendum/data": "git+https://github.com/climatereferendum/data.git",
     "@hapi/boom": "^9.0.0",
     "@hapi/hapi": "^19.1.1",
     "@sentry/node": "^5.20.1",

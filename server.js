@@ -4,7 +4,7 @@ import { MongoClient, ObjectId } from 'mongodb'
 import Queue from 'bee-queue'
 import * as Sentry from '@sentry/node'
 
-import { universities as links, solutions, emailProviders } from '@aliceingovernment/data'
+import { universities as links, solutions, emailProviders, i18n } from '@climatereferendum/data'
 import { populateCache,
          addToCache,
          extractPublicPart,
@@ -206,7 +206,7 @@ async function listVotes (request, h) {
 }
 
 async function listStats (request, h) {
-  return { stats, universities, solutions, emailProviders }
+  return { stats, universities, solutions, emailProviders, i18n }
 }
 
 process.on('unhandledRejection', (err) => {

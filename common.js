@@ -1,4 +1,4 @@
-import { solutions } from '@aliceingovernment/data'
+import { solutions } from '@climatereferendum/data'
 const universities = require('./universities.json')
 
 function calculateResults (votes) {
