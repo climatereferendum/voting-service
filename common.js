@@ -21,7 +21,7 @@ export function extractPublicPart (vote) {
 export function determineUniversity (email) {
   const emailDomain = email.split('@')[1]
   const matchingUniversity = universities.find(university => {
-    return university.domains.find(domain => domain.match(new RegExp(`${emailDomain}$`)))
+    return university.domains.find(domain => domain.match(new RegExp(`${emailDomain}$`) || emailDomain.match(new RegExp(`[.]${domain}$`))))
   })
   if (matchingUniversity) return matchingUniversity.domains[0]
 }
